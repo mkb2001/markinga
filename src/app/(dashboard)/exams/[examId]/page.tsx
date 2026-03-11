@@ -102,7 +102,7 @@ export default async function ExamDetailPage({ params }: PageProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-tour="exam-overview">
         <Card>
           <CardContent className="flex items-center gap-3 pt-6">
             <BookOpen className="h-5 w-5 text-primary" />
@@ -153,7 +153,7 @@ export default async function ExamDetailPage({ params }: PageProps) {
           <TabsTrigger value="submissions">
             Submissions ({exam._count.submissions})
           </TabsTrigger>
-          <TabsTrigger value="rubric">
+          <TabsTrigger value="rubric" data-tour="rubric">
             Rubric ({exam._count.rubrics})
           </TabsTrigger>
         </TabsList>
@@ -199,7 +199,7 @@ export default async function ExamDetailPage({ params }: PageProps) {
           </Card>
 
           <div className="flex gap-3">
-            <Button asChild>
+            <Button asChild data-tour="upload">
               <Link href={`/exams/${examId}/submissions/upload`}>
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Submissions

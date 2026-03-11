@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useRouter, usePathname } from "next/navigation";
 import { useTourStore } from "@/hooks/use-tour";
-import { tourSteps } from "@/config/tour-steps";
+import { tourSteps, resolveRoute } from "@/config/tour-steps";
 import { TourTooltip } from "@/components/tour/tour-tooltip";
 
 interface TargetRect {
@@ -15,6 +16,8 @@ interface TargetRect {
 
 const TOOLTIP_OFFSET = 16;
 const TOOLTIP_WIDTH = 320;
+const TARGET_RETRY_INTERVAL = 200;
+const TARGET_RETRY_MAX = 15; // 3 seconds max wait
 
 function getTooltipPosition(
   rect: TargetRect,
@@ -23,7 +26,6 @@ function getTooltipPosition(
   const scrollY = window.scrollY;
   const scrollX = window.scrollX;
   const vpWidth = window.innerWidth;
-  const vpHeight = window.innerHeight;
 
   let top = 0;
   let left = 0;
@@ -34,7 +36,7 @@ function getTooltipPosition(
       left = rect.left + scrollX + rect.width / 2 - TOOLTIP_WIDTH / 2;
       break;
     case "top":
-      top = rect.top + scrollY - TOOLTIP_OFFSET - 200; // estimated tooltip height
+      top = rect.top + scrollY - TOOLTIP_OFFSET - 200;
       left = rect.left + scrollX + rect.width / 2 - TOOLTIP_WIDTH / 2;
       break;
     case "right":
@@ -47,7 +49,6 @@ function getTooltipPosition(
       break;
   }
 
-  // Clamp within viewport
   left = Math.max(8, Math.min(left, vpWidth - TOOLTIP_WIDTH - 8));
   top = Math.max(8 + scrollY, top);
 
@@ -59,14 +60,39 @@ function getTooltipPosition(
 }
 
 export function TourStep() {
-  const { isActive, currentStep, nextStep, prevStep, skipTour } = useTourStore();
+  const {
+    isActive,
+    currentStep,
+    nextStep,
+    prevStep,
+    skipTour,
+    demoExamId,
+    demoSubmissionId,
+  } = useTourStore();
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [ready, setReady] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const step = tourSteps[currentStep];
 
+  const resolvedRoute = step?.route
+    ? resolveRoute(step.route, demoExamId, demoSubmissionId)
+    : null;
+
+  const clearRetryTimer = useCallback(() => {
+    if (retryTimerRef.current) {
+      clearInterval(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    retryCountRef.current = 0;
+  }, []);
+
   const measureTarget = useCallback(() => {
-    if (!step) return;
+    if (!step) return false;
     const el = document.querySelector(step.target);
     if (el) {
       const rect = el.getBoundingClientRect();
@@ -76,27 +102,72 @@ export function TourStep() {
         width: rect.width,
         height: rect.height,
       });
-    } else {
-      setTargetRect(null);
+      return true;
     }
+    setTargetRect(null);
+    return false;
   }, [step]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Handle navigation when step route differs from current path
+  useEffect(() => {
+    if (!isActive || !step || !resolvedRoute) return;
+
+    if (pathname !== resolvedRoute) {
+      setReady(false);
+      setTargetRect(null);
+      router.push(resolvedRoute);
+    }
+  }, [isActive, step, resolvedRoute, pathname, router]);
+
+  // After navigation (or on same page), retry finding target element
   useEffect(() => {
     if (!isActive || !step) return;
-    measureTarget();
+
+    // If we need to navigate and haven't arrived yet, wait
+    if (resolvedRoute && pathname !== resolvedRoute) {
+      setReady(false);
+      return;
+    }
+
+    // We're on the right page — try to find target
+    clearRetryTimer();
+
+    const found = measureTarget();
+    if (found) {
+      setReady(true);
+      return;
+    }
+
+    // Retry until found or max retries
+    retryTimerRef.current = setInterval(() => {
+      retryCountRef.current += 1;
+      const found = measureTarget();
+      if (found || retryCountRef.current >= TARGET_RETRY_MAX) {
+        clearRetryTimer();
+        setReady(true);
+      }
+    }, TARGET_RETRY_INTERVAL);
+
+    return clearRetryTimer;
+  }, [isActive, step, pathname, resolvedRoute, measureTarget, clearRetryTimer]);
+
+  // Keep measuring on scroll/resize
+  useEffect(() => {
+    if (!isActive || !step || !ready) return;
+
     window.addEventListener("resize", measureTarget);
     window.addEventListener("scroll", measureTarget, true);
     return () => {
       window.removeEventListener("resize", measureTarget);
       window.removeEventListener("scroll", measureTarget, true);
     };
-  }, [isActive, step, measureTarget]);
+  }, [isActive, step, ready, measureTarget]);
 
-  if (!mounted || !isActive || !step) return null;
+  if (!mounted || !isActive || !step || !ready) return null;
 
   const hasTarget = targetRect !== null;
   const tooltipStyle = hasTarget

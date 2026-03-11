@@ -64,7 +64,7 @@ export default async function DashboardPage() {
           title="Dashboard"
           description="Manage and autograde your exams"
         >
-          <Button asChild>
+          <Button asChild data-tour="new-exam">
             <Link href="/exams/new">
               <Plus className="h-4 w-4" />
               New Exam
@@ -72,7 +72,9 @@ export default async function DashboardPage() {
           </Button>
         </PageHeader>
 
-        <StatsCards stats={stats} />
+        <div data-tour="dashboard">
+          <StatsCards stats={stats} />
+        </div>
 
         <ExamTable exams={exams} />
       </div>

@@ -7,12 +7,15 @@ interface TourState {
   currentStep: number;
   completedSteps: string[];
   hasCompletedTour: boolean;
+  demoExamId: string | null;
+  demoSubmissionId: string | null;
 
   startTour: () => void;
   nextStep: () => void;
   prevStep: () => void;
   skipTour: () => void;
   completeTour: () => void;
+  setDemoData: (examId: string, submissionId: string) => void;
 }
 
 export const useTourStore = create<TourState>()(
@@ -22,6 +25,8 @@ export const useTourStore = create<TourState>()(
       currentStep: 0,
       completedSteps: [],
       hasCompletedTour: false,
+      demoExamId: null,
+      demoSubmissionId: null,
 
       startTour: () =>
         set({
@@ -71,12 +76,20 @@ export const useTourStore = create<TourState>()(
           currentStep: 0,
           hasCompletedTour: true,
         }),
+
+      setDemoData: (examId: string, submissionId: string) =>
+        set({
+          demoExamId: examId,
+          demoSubmissionId: submissionId,
+        }),
     }),
     {
       name: "markinga-tour",
       partialize: (state) => ({
         completedSteps: state.completedSteps,
         hasCompletedTour: state.hasCompletedTour,
+        demoExamId: state.demoExamId,
+        demoSubmissionId: state.demoSubmissionId,
       }),
     }
   )

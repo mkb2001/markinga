@@ -80,6 +80,7 @@ export function GradingPanel({
 
   return (
     <div
+      data-tour="review"
       className={cn(
         "flex h-full flex-col overflow-hidden rounded-lg border bg-background",
         className
@@ -99,7 +100,7 @@ export function GradingPanel({
           <ScoreBadge score={grade.score} maxScore={grade.maxScore} />
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2" data-tour="confidence">
           <span className="text-xs text-muted-foreground">Autograded</span>
           {grade.confidenceLevel && (
             <ConfidenceIndicator

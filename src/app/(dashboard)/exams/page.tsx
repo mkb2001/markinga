@@ -47,7 +47,7 @@ export default async function ExamsPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-tour="exams-list">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Exams</h1>

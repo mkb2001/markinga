@@ -52,7 +52,7 @@ const AI_MODELS: { key: AiModelKey; label: string; description: string }[] = [
 export default function SettingsPage() {
   const { institutionType, institutionName, setInstitution } =
     useInstitutionMode();
-  const { startTour } = useTourStore();
+  const { startTour, setDemoData, demoExamId } = useTourStore();
 
   // Profile state (client-only demo — real save would call an API)
   const [fullName, setFullName] = useState("");
@@ -94,9 +94,22 @@ export default function SettingsPage() {
     toast.success("AI model preferences saved.");
   }
 
-  function handleRestartTour() {
+  const [tourLoading, setTourLoading] = useState(false);
+
+  async function handleRestartTour() {
+    setTourLoading(true);
+    try {
+      // Re-seed demo data if needed
+      const res = await fetch("/api/tour/seed", { method: "POST" });
+      const data = await res.json();
+      if (data.examId && data.submissionId) {
+        setDemoData(data.examId, data.submissionId);
+      }
+    } catch {
+      // Continue without seeding
+    }
+    setTourLoading(false);
     startTour();
-    toast.info("Tour started. Navigate to the dashboard to begin.");
   }
 
   function toggleModel(key: AiModelKey) {
@@ -317,9 +330,9 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" onClick={handleRestartTour}>
+          <Button variant="outline" onClick={handleRestartTour} disabled={tourLoading}>
             <PlayCircle className="mr-2 size-4" />
-            Restart Tour
+            {tourLoading ? "Preparing..." : "Restart Tour"}
           </Button>
         </CardContent>
       </Card>

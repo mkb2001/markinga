@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { School, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTourStore } from "@/hooks/use-tour";
 import type { InstitutionType } from "@/types/database";
 
 export function OnboardingWrapper() {
@@ -23,6 +24,7 @@ export function OnboardingWrapper() {
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const { setInstitution } = useInstitutionMode();
+  const { setDemoData, startTour } = useTourStore();
   const router = useRouter();
 
   async function handleSubmit() {
@@ -38,8 +40,21 @@ export function OnboardingWrapper() {
         }),
       });
       setInstitution(selectedType, name);
+
+      // Seed demo data for the guided tour
+      try {
+        const seedRes = await fetch("/api/tour/seed", { method: "POST" });
+        const seedData = await seedRes.json();
+        if (seedData.examId && seedData.submissionId) {
+          setDemoData(seedData.examId, seedData.submissionId);
+        }
+      } catch {
+        // Tour seed failed — continue without tour
+      }
+
       setOpen(false);
       router.refresh();
+      startTour();
     } catch {
       setSaving(false);
     }
