@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const profile = await prisma.profile.findUnique({
@@ -21,7 +21,7 @@ export default async function DashboardPage() {
   });
 
   if (!profile) {
-    redirect("/login");
+    redirect("/sign-in");
   }
 
   const exams = await prisma.exam.findMany({
