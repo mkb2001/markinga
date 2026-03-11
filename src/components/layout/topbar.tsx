@@ -1,6 +1,6 @@
 "use client";
 
-import { Show, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import { UgandaFlagIcon } from "@/components/shared/uganda-flag-icon";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +35,7 @@ export function Topbar({ userEmail, userName }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-3">
-        <Show when="signed-out">
+        <SignedOut>
           <SignInButton>
             <Button variant="outline" size="sm">
               Sign In
@@ -44,10 +44,10 @@ export function Topbar({ userEmail, userName }: TopbarProps) {
           <SignUpButton>
             <Button size="sm">Sign Up</Button>
           </SignUpButton>
-        </Show>
-        <Show when="signed-in">
+        </SignedOut>
+        <SignedIn>
           <UserButton />
-        </Show>
+        </SignedIn>
       </div>
     </header>
   );

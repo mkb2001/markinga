@@ -1,6 +1,6 @@
 "use client";
 
-import { SignUpButton, Show } from "@clerk/nextjs";
+import { SignUpButton, SignedIn, SignedOut } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +30,7 @@ export default function RegisterPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Show when="signed-out">
+          <SignedOut>
             <SignUpButton
               fallbackRedirectUrl="/dashboard"
               signInFallbackRedirectUrl="/dashboard"
@@ -39,8 +39,8 @@ export default function RegisterPage() {
                 Create Account
               </Button>
             </SignUpButton>
-          </Show>
-          <Show when="signed-in">
+          </SignedOut>
+          <SignedIn>
             <Button
               size="lg"
               className="w-full"
@@ -48,7 +48,7 @@ export default function RegisterPage() {
             >
               Go to Dashboard
             </Button>
-          </Show>
+          </SignedIn>
         </CardContent>
         <CardFooter className="justify-center">
           <p className="text-sm text-muted-foreground">
