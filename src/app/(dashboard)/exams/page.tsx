@@ -34,7 +34,7 @@ const STATUS_LABEL: Record<ExamStatus, string> = {
 export default async function ExamsPage() {
   const { userId } = await auth();
 
-  if (!userId) redirect("/login");
+  if (!userId) redirect("/sign-in");
 
   const exams = await prisma.exam.findMany({
     where: { userId },
