@@ -7,7 +7,7 @@ import { ExamTable } from "@/components/dashboard/exam-table";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { InstitutionSelectModal } from "@/components/auth/institution-select-modal";
+import { OnboardingWrapper } from "@/components/auth/onboarding-wrapper";
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -77,9 +77,7 @@ export default async function DashboardPage() {
         <ExamTable exams={exams} />
       </div>
 
-      {needsOnboarding && (
-        <InstitutionSelectModal open={true} onComplete={() => {}} />
-      )}
+      {needsOnboarding && <OnboardingWrapper />}
     </>
   );
 }
