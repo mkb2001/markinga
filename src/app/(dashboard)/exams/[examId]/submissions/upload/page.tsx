@@ -20,7 +20,7 @@ export default async function UploadSubmissionsPage({ params }: PageProps) {
 
   const { userId } = await auth();
 
-  if (!userId) redirect("/login");
+  if (!userId) redirect("/sign-in");
 
   const exam = await prisma.exam.findFirst({
     where: { id: examId, userId },

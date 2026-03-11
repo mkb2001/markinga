@@ -49,7 +49,7 @@ export default async function ExamDetailPage({ params }: PageProps) {
 
   const { userId } = await auth();
 
-  if (!userId) redirect("/login");
+  if (!userId) redirect("/sign-in");
 
   const exam = await prisma.exam.findFirst({
     where: { id: examId, userId },

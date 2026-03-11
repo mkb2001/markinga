@@ -12,7 +12,7 @@ import {
 export default async function NewExamPage() {
   const { userId } = await auth();
 
-  if (!userId) redirect("/login");
+  if (!userId) redirect("/sign-in");
 
   return (
     <div className="mx-auto max-w-2xl">
