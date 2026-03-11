@@ -1,65 +1,75 @@
 import { NextResponse } from "next/server";
 import pg from "pg";
 
+async function testConnection(config: pg.PoolConfig, label: string) {
+  try {
+    const pool = new pg.Pool({ ...config, connectionTimeoutMillis: 8000 });
+    const res = await pool.query("SELECT 1 as ok");
+    await pool.end();
+    return `${label}: CONNECTED`;
+  } catch (err: unknown) {
+    const e = err as Error & { code?: string };
+    return `${label}: ${e.code || ""} ${e.message}`;
+  }
+}
+
 export async function GET() {
-  const vars = [
-    "DATABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "OPENAI_API_KEY",
-    "ANTHROPIC_API_KEY",
-    "GOOGLE_AI_API_KEY",
-    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-    "CLERK_SECRET_KEY",
-    "NEXT_PUBLIC_CLERK_SIGN_IN_URL",
-    "NEXT_PUBLIC_CLERK_SIGN_UP_URL",
-    "NEXT_PUBLIC_APP_URL",
-  ];
+  const dbUrl = process.env.DATABASE_URL || "";
 
-  const result: Record<string, string> = {};
-
-  for (const name of vars) {
-    const val = process.env[name];
-    if (!val) {
-      result[name] = "NOT SET";
-    } else if (name === "DATABASE_URL") {
-      const match = val.match(/@([^/]+)/);
-      result[name] = match ? `...@${match[1]}/...` : `SET (${val.length} chars)`;
-    } else if (name.startsWith("NEXT_PUBLIC_SUPABASE_URL")) {
-      result[name] = val;
-    } else if (name.startsWith("NEXT_PUBLIC_CLERK_SIGN")) {
-      result[name] = val;
-    } else {
-      const preview =
-        val.length > 16
-          ? `${val.slice(0, 8)}...${val.slice(-4)}`
-          : `SET (${val.length} chars)`;
-      result[name] = preview;
-    }
+  // Parse the URL to show what pg sees
+  let parsed = "N/A";
+  try {
+    const u = new URL(dbUrl);
+    parsed = `host=${u.hostname} port=${u.port} user=${u.username} db=${u.pathname} password_length=${u.password.length}`;
+  } catch {
+    parsed = "INVALID URL";
   }
 
-  // Test database connection
-  let dbStatus = "NOT TESTED";
-  const dbUrl = process.env.DATABASE_URL;
-  if (dbUrl) {
-    try {
-      const pool = new pg.Pool({
-        connectionString: dbUrl,
-        connectionTimeoutMillis: 5000,
+  // Test 1: Connection string as-is
+  const test1 = await testConnection(
+    { connectionString: dbUrl },
+    "raw_string"
+  );
+
+  // Test 2: With SSL disabled
+  const test2 = await testConnection(
+    { connectionString: dbUrl, ssl: false },
+    "no_ssl"
+  );
+
+  // Test 3: With SSL rejectUnauthorized false
+  const test3 = await testConnection(
+    { connectionString: dbUrl, ssl: { rejectUnauthorized: false } },
+    "ssl_no_verify"
+  );
+
+  // Test 4: Explicit params (bypasses URL parsing issues)
+  let test4 = "skipped";
+  try {
+    const u = new URL(dbUrl);
+    test4 = await testConnection(
+      {
+        host: u.hostname,
+        port: parseInt(u.port) || 5432,
+        database: u.pathname.slice(1),
+        user: u.username,
+        password: decodeURIComponent(u.password),
         ssl: { rejectUnauthorized: false },
-      });
-      const res = await pool.query("SELECT 1 as ok");
-      dbStatus = res.rows[0]?.ok === 1 ? "CONNECTED" : "UNEXPECTED RESULT";
-      await pool.end();
-    } catch (err: unknown) {
-      const e = err as Error & { code?: string };
-      dbStatus = `ERROR: ${e.code || ""} ${e.message}`;
-    }
+      },
+      "explicit_params"
+    );
+  } catch {
+    test4 = "URL parse failed";
   }
 
   return NextResponse.json(
-    { ...result, DB_CONNECTION_TEST: dbStatus },
+    {
+      parsed_url: parsed,
+      test1_raw: test1,
+      test2_no_ssl: test2,
+      test3_ssl_loose: test3,
+      test4_explicit: test4,
+    },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
