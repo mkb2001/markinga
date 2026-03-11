@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import pg from "pg";
 
 export async function GET() {
   const vars = [
@@ -23,7 +24,6 @@ export async function GET() {
     if (!val) {
       result[name] = "NOT SET";
     } else if (name === "DATABASE_URL") {
-      // Show host portion only
       const match = val.match(/@([^/]+)/);
       result[name] = match ? `...@${match[1]}/...` : `SET (${val.length} chars)`;
     } else if (name.startsWith("NEXT_PUBLIC_SUPABASE_URL")) {
@@ -31,7 +31,6 @@ export async function GET() {
     } else if (name.startsWith("NEXT_PUBLIC_CLERK_SIGN")) {
       result[name] = val;
     } else {
-      // Show first 8 and last 4 chars
       const preview =
         val.length > 16
           ? `${val.slice(0, 8)}...${val.slice(-4)}`
@@ -40,7 +39,27 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json(result, {
-    headers: { "Cache-Control": "no-store" },
-  });
+  // Test database connection
+  let dbStatus = "NOT TESTED";
+  const dbUrl = process.env.DATABASE_URL;
+  if (dbUrl) {
+    try {
+      const pool = new pg.Pool({
+        connectionString: dbUrl,
+        connectionTimeoutMillis: 5000,
+        ssl: { rejectUnauthorized: false },
+      });
+      const res = await pool.query("SELECT 1 as ok");
+      dbStatus = res.rows[0]?.ok === 1 ? "CONNECTED" : "UNEXPECTED RESULT";
+      await pool.end();
+    } catch (err: unknown) {
+      const e = err as Error & { code?: string };
+      dbStatus = `ERROR: ${e.code || ""} ${e.message}`;
+    }
+  }
+
+  return NextResponse.json(
+    { ...result, DB_CONNECTION_TEST: dbStatus },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
